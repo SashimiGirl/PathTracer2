@@ -1,0 +1,302 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+  body {
+    padding: 100px;
+    width: 1000px;
+    margin: auto;
+    text-align: left;
+    font-weight: 300;
+    font-family: 'Open Sans', sans-serif;
+    color: #121212;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+</style>
+<title>CS 184 PathTracer</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2018</h1>
+<h1 align="middle">Project 3.2: PathTracer</h1>
+<h2 align="middle">Sara Maemoto, CS184-afb</h2>
+
+<br><br>
+
+<div>
+    <div class="padded">
+        <p>In this project I created new materials to render such as mirrors, glass, and microfacet materials. This meant calculating reflection and refraction of light rays, as well as calculating bidirectional scattering distribution based on the material. I also added environment lighting, which meant adding a light source at an infinite distance away that provides incidence radiance from all directions. I implemented a depth of field, which provided a lens in front of the camera and created a sense of depth and focus. The last part of this project was creating shaders with GLSL. It was challenging getting familiar with the classes and variables in GLSL.</p>
+        
+
+    <h2 align="middle">Part 1: Mirror and Glass Materials</h2>
+        <p>I calculated the reflection of a light bouncing off of a primitive. Which allowed me to implement mirror materials. This was done by just reflecting the light off the surface. Refraction was also implemented in this part, this was done by calculating the outgoing ray based on Snell's law. Using both refraction and reflection I was able to implement glass materials. I used Schlick's approximation to decide on the ratio of reflection energy to refraction energy. Based on this ratio I randomly used either reflection or refraction on and within the glass material.</p>
+
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                    <img src="images/CBspheres_1024_4_0.png" width="480px" />
+                    <figcaption align="middle">Spheres at 1024 samples/pixel and 4 samples/light at a depth of 0. </figcaption>
+                    <td align="middle">
+                    <img src="images/CBspheres_1024_4_1.png" width="480px" />
+                    <figcaption align="middle">Spheres at 1024 samples/pixel and 4 samples/light at a depth of 1. </figcaption>
+                </tr>
+                <tr>
+                    <td align="middle">
+                    <img src="images/CBspheres_1024_4_2.png" width="480px" />
+                    <figcaption align="middle">Spheres at 1024 samples/pixel and 4 samples/light at a depth of 2. </figcaption>
+                    <td align="middle">
+                    <img src="images/CBspheres_1024_4_3.png" width="480px" />
+                    <figcaption align="middle">Spheres at 1024 samples/pixel and 4 samples/light at a depth of 3. </figcaption>
+                </tr>
+                <tr>
+                    <td align="middle">
+                    <img src="images/CBspheres_1024_4_4.png" width="480px" />
+                    <figcaption align="middle">Spheres at 1024 samples/pixel and 4 samples/light at a depth of 4. </figcaption>
+                    <td align="middle">
+                    <img src="images/CBspheres_1024_4_5.png" width="480px" />
+                    <figcaption align="middle">Spheres at 1024 samples/pixel and 4 samples/light at a depth of 5. </figcaption>
+                </tr>
+            </table>
+        </div>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                    <img src="images/CBspheres_1024_4_100.png" width="480px" />
+                    <figcaption align="middle">Spheres at 1024 samples/pixel and 4 samples/light at a depth of 100. </figcaption>
+                </tr>
+            </table>
+        </div>
+        <p>At a depth of 0 and 1, it is easy to see that there are virtual no bounces that make it from the light source to the sphere to the camera. At a depth of two the light is able to hit the surface of the spheres and make it to the camera. A depth of 3 shows that the mirror material is able to catch the path from the light to other obects, to the sphere, and then finally to the camera. At a depth of 4, the glass is able to allow enough bounces to make it back to the camera. With a depth of 5, you can see shadows starting to appear less dark (due to the light rays bouncing off the walls to help illuminate the shadowy spots). At a depth of 100, we can see a bit of difference in the glass material. If you look closely by the light source you can see little specs of light on the surface. This is due to the fact that the glass is able to refract the light as well as reflect it.</p>
+
+    <h2 align="middle">Part 2: Microfacet Materials</h2>
+        <p>In this part I implemented the microfacet model, which includes a Fresnel term, a shadow-masking term, and a normal distribution function. I wrote a normal distribution function by calculating the Beckmann distribution. This calculation took into account the roughness of the surface (alpha), and the angle between the half vector and the normal vector. I also wrote a Fresnel function that calculated the Fresnel term associated with the angle of incident. The fresnel term uses eta and k values, which is determined by the type of material, in it's calculations. Lastly, I created an importance sampling. Instead of using hemisphere sampling, I sample 2 random angles and get a sampled normal based on those angles. I am then able to find an incident direction by reflecting the incoming direction according to the sampled normal.</p>
+
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                    <img src="images/Dragon_micro_256_4_6_5.png" width="480px" />
+                    <figcaption align="middle">Dragon at 256 samples/pixel and 4 samples/light at a depth of 6 and alpha at 0.5. </figcaption>
+                    <td align="middle">
+                    <img src="images/Dragon_micro_256_4_6_25.png" width="480px" />
+                    <figcaption align="middle">Dragon at 256 samples/pixel and 4 samples/light at a depth of 6 and alpha at 0.25. </figcaption>
+                </tr>
+                <tr>
+                    <td align="middle">
+                    <img src="images/Dragon_micro_256_4_6_05.png" width="480px" />
+                    <figcaption align="middle">Dragon at 256 samples/pixel and 4 samples/light at a depth of 6 and alpha at 0.05. </figcaption>
+                    <td align="middle">
+                    <img src="images/Dragon_micro_256_4_6_005.png" width="480px" />
+                    <figcaption align="middle">Dragon at 256 samples/pixel and 4 samples/light at a depth of 6 and alpha at 0.005. </figcaption>
+                </tr>
+            </table>
+        </div>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                    <img src="images/Bunny_micro_hemisphere_64_1_6.png" width="480px" />
+                    <figcaption align="middle">Bunny at 64 samples/pixel and a depth of 6 using hemisphere sampling. </figcaption>
+                    <td align="middle">
+                    <img src="images/Bunny_micro_importance_64_1_6.png" width="480px" />
+                    <figcaption align="middle">Bunny at 64 samples/pixel and a depth of 6 using importance sampling. </figcaption>
+                </tr>
+            </table>
+        </div>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                    <img src="images/Bunny_silicon_1024_4_6.png" width="480px" />
+                    <figcaption align="middle">Bunny at 1024 samples/pixel, 4 samples/light at a depth of 6 using silicon.</figcaption>
+                </tr>
+            </table>
+        </div>
+        <p>The last bunny is rendered with a silicon material. I changed eta to be 0.33228, 1.0162, and 1.2474. And k to 3.1646, 2.5785, and 2.4603. These eta and k values correspond to wavelengths 614 nm, 549 nm, and 466 nm respectively.</p>
+
+    <h2 align="middle">Part 3: Environment Map Lights</h2>
+        <p>In this part I implemented an infinite environment light source. This light source supplies incident radiance from all directions on the sphere. It also is considered to be an infinite distance away. To do this I made a function for sampling with the environment light. This returned the light given from a random sample direction from the environment map. I also created a uniform sampling function that generates a random direction on a sphere. I also created a importance sampling function that gave a probability to each pixel in the environment map based on the total flux passing through the solid angle. To calculate the probablity I sampled each row in the environment map and saved the marginal distribution in p(y). Then for each pixel in the row I take the sample and divide it by the marginal distribution for that row. You can see a visualization of this distribution in the picture below. Using this probability distribution, I was able to acurately calculate the radiance returned from the environment map.</p>
+
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                    <img src="images/probability_debug.png" width="480px" />
+                    <figcaption align="middle">Visualization of my probability distributions. </figcaption>
+                </tr>
+            </table>
+        </div>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                    <img src="images/Bunny_uniform_uffizi_4_64_1.png" width="480px" />
+                    <figcaption align="middle">Bunny at 4 samples/pixel, 64 samples/light, and a depth of 1 using uniform sampling. </figcaption>
+                    <td align="middle">
+                    <img src="images/Bunny_importance_uffizi_4_64_1.png" width="480px" />
+                    <figcaption align="middle">Microfacet bunny at 4 samples/pixel, 64 samples/light, and a depth of 1 using importance sampling. </figcaption>
+                </tr>
+            </table>
+        </div>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                    <img src="images/Bunny_micro_uniform_uffizi_4_64_1.png" width="480px" />
+                    <figcaption align="middle">Bunny at 4 samples/pixel, 64 samples/light, and a depth of 1 using uniform sampling. </figcaption>
+                    <td align="middle">
+                    <img src="images/Bunny_micro_importance_uffizi_4_64_1.png" width="480px" />
+                    <figcaption align="middle">Microfacet bunny at 4 samples/pixel, 64 samples/light, and a depth of 1 using importance sampling. </figcaption>
+                </tr>
+            </table>
+        </div>
+        <p>Comparing the left and the right bunnies, it is plain to see that the importance sampling results in a cleaner result. There is a lot less noise with importance sampling vs. the uniform sampling. The microfacet bunny still has a bit of noise in it's reflections, but comparitively it is better illuminated with importance sampling.</p>
+
+    <h2 align="middle">Part 4: Depth of Field</h2>
+        <p>To create a depth of field, I simulated a thin lens in front of the camera. First I generated a ray that went through the center of the lens, which allowed the ray to pass through the lens with no change in direction. Using this ray I am able to calculate the focus position in the scene. I can unifromly sample the lens by representing it as a disk. This allows me to calculate a ray direction goes from the pixel to a random point on the lens. Using the focus point and the point of intersection on the disk I am able to find the ray direction going to the intersection point. This is now the ray that I want to sample.</p>
+
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                    <img src="images/Dragon_focus_12_0883883_256_2_8.png" width="480px" />
+                    <figcaption align="middle">Dragon at 256 samples/pixel, 2 samples/light, and a depth of 8 using a focal length 1.2 and apature 0.0883883. </figcaption>
+                    <td align="middle">
+                    <img src="images/Dragon_focus_17_0883883_256_2_8.png" width="480px" />
+                    <figcaption align="middle">Dragon at 256 samples/pixel, 2 samples/light, and a depth of 8 using a focal length 1.7 and apature 0.0883883. </figcaption>
+                </tr>
+                <tr>
+                    <td align="middle">
+                    <img src="images/Dragon_focus_18_0883883_256_2_8.png" width="480px" />
+                    <figcaption align="middle">Dragon at 256 samples/pixel, 2 samples/light, and a depth of 8 using a focal length 1.8 and apature 0.0883883. </figcaption>
+                    <td align="middle">
+                    <img src="images/Dragon_focus_19_0883883_256_2_8.png" width="480px" />
+                    <figcaption align="middle">Dragon at 256 samples/pixel, 2 samples/light, and a depth of 8 using a focal length 1.9 and apature 0.0883883. </figcaption>
+                </tr>
+            </table>
+        </div>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                    <img src="images/Dragon_ap_17_0683883_128_4_8.png" width="480px" />
+                    <figcaption align="middle">Dragon at 128 samples/pixel, 4 samples/light, and a depth of 6 using a focal length 1.7 and apature 0.0683883. </figcaption>
+                    <td align="middle">
+                    <img src="images/Dragon_ap_17_0483883_128_4_8.png" width="480px" />
+                    <figcaption align="middle">Dragon at 128 samples/pixel, 4 samples/light, and a depth of 8 using a focal length 1.7 and apature 0.0483883. </figcaption>
+                </tr>
+                <tr>
+                    <td align="middle">
+                    <img src="images/Dragon_ap_17_0283883_128_4_8.png" width="480px" />
+                    <figcaption align="middle">Dragon at 128 samples/pixel, 4 samples/light, and a depth of 8 using a focal length 1.7 and apature 0.0283883. </figcaption>
+                    <td align="middle">
+                    <img src="images/Dragon_ap_17_0083883_128_4_8.png" width="480px" />
+                    <figcaption align="middle">Dragon at 128 samples/pixel, 4 samples/light, and a depth of 8 using a focal length 1.7 and apature 0.0083883. </figcaption>
+                </tr>
+            </table>
+        </div>
+        <p></p>
+
+    <h2 align="middle">Part 5: GLSL Shading</h2>
+    <a href="gl/index.html">GLSL shading page</a>
+        <p>A shader program does part of the graphics pipeline on GPU which runs in parallel with the CPU. The vertex shader makes all of the transformations to the verticies and then passes the result to the fragment shader. The fragment shader takes the geometric attributes (given in the results of the vertex shader) and does the calculation to add color to the main program to render. You can see the results of applying changes to the verticies in part 4-2 of this section. Looking at part 1 and 2 you can see how applying 2 different calculations in fragment shader can result in different kinds of shading. The Blinn-Phong shading model takes the calculation of light for ambient, diffuse, and specular and combines them so that the shading has a nice blend of all three, giving the object depth and texture.</p>
+
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                    <img src="images/Blinn_ambient.png" width="480px" />
+                    <figcaption align="middle">Teapot with only ambient light.</figcaption>
+                    <td align="middle">
+                    <img src="images/Blinn_diffuse.png" width="480px" />
+                    <figcaption align="middle">Teapot with only diffuse light.</figcaption>
+                </tr>
+                <tr>
+                    <td align="middle">
+                    <img src="images/Blinn_specular.png" width="480px" />
+                    <figcaption align="middle">Teapot with only specular light.</figcaption>
+                    <td align="middle">
+                    <img src="images/Blinn_phong.png" width="480px" />
+                    <figcaption align="middle">Teapot with Blinn Phong shading.</figcaption>
+                </tr>
+            </table>
+        </div>
+
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                    <img src="images/Spaceballs.png" width="480px" />
+                    <figcaption align="middle">Sphere with a texture map.</figcaption>
+                </tr>
+            </table>
+        </div>
+        
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                    <img src="images/BumpySpace.png" width="480px" />
+                    <figcaption align="middle">Bump mapping of the texture map above.</figcaption>
+                    <td align="middle">
+                    <img src="images/DisplacedSpace.png" width="480px" />
+                    <figcaption align="middle">Displacement mapping of the texture map above with low poly.</figcaption>
+                </tr>
+                <tr>
+                    <td align="middle">
+                    <img src="images/BumpySpaceLow.png" width="480px" />
+                    <figcaption align="middle">Bump mapping of the texture map above.</figcaption>
+                    <td align="middle">
+                    <img src="images/DisplacedSpaceLow.png" width="480px" />
+                    <figcaption align="middle">Displacement mapping of the texture map above with low poly.</figcaption>
+                </tr>
+            </table>
+        </div>
+        <p>The bump mapping results in a cleaner and accurate representation of the texture map. While the displacement map exaggerates the original bumps that were generated from the bump mapping. With lower poly meshes the bump mapping becomes more gradual and less defined. The displacement mapping changes from spikes to elongated rises.</p>
+
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                    <img src="images/SeaUrchin.png" width="480px" />
+                    <figcaption align="middle">My sea urchin.</figcaption>
+                </tr>
+            </table>
+        </div>
+
+        <p>To create this scene I created a torus object and added a fabric texture map to it and allowed for bump mapping for the verticies.</p>
+    <h2 align="middle">Extra: Bloopers</h2>
+
+    <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                    <img src="images/GhostBunny.png" width="480px" />
+                    <figcaption align="middle">Ghost Bunny.</figcaption>
+                    <td align="middle">
+                    <img src="images/SnowBunny.png" width="480px" />
+                    <figcaption align="middle">Snow Bunny.</figcaption>
+                </tr>
+            </table>
+        </div>
+
+        <p>When doing part 3 of this project, I was having a very hard time rendering this bunny. He now haunts my dreams and stalks me in the winter... The haunting comes from using the original ray instead of the intersecting ray in my at_least_one_bounce function. Winter hath come from accessing a negative index for my probability array... I shall not soon forget. </p>
+
+    </div>
+
+    <h3 align="middle">Extra Information</h3>
+    <p>With respect to UC Berkeley's academic integrety, I will not be posting the code associated with this project. Please contact me directly for my completed work.</p>
+</body>
+</html>
+
+
+
+
